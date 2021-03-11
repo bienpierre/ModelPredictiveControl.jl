@@ -4,6 +4,5 @@ ModelPredictiveControl.jl is a Julia package for Model Predictive Control (MPC) 
 
 ModelPredictiveControl.jl is in early stage, please consider the package as experimental.
 
-Contributions and discussions and interesting in MPC are welcomed.  
 
 
