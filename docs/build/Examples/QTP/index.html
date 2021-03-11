@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Four-tank benchmark · EasyMPC.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">EasyMPC.jl</span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Problems</span><ul><li><a class="tocitem" href="../../linearmpc/">Linear Model Predictive Control</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li class="is-active"><a class="tocitem" href>Four-tank benchmark</a><ul class="internal"><li><a class="tocitem" href="#Process"><span>Process</span></a></li><li><a class="tocitem" href="#Program"><span>Program</span></a></li><li><a class="tocitem" href="#Description"><span>Description</span></a></li><li><a class="tocitem" href="#Reference"><span>Reference</span></a></li></ul></li></ul></li><li><span class="tocitem">Functions</span><ul><li><a class="tocitem" href="../../functions/">Functions user guide</a></li></ul></li><li><span class="tocitem">Style guide</span><ul><li><a class="tocitem" href="../../style_guide/">Style guide</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Four-tank benchmark</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Four-tank benchmark</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/bienpierre/EasyMPC.jl/blob/master/docs/src/Examples/QTP.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Four-tank-benchmark"><a class="docs-heading-anchor" href="#Four-tank-benchmark">Four-tank benchmark</a><a id="Four-tank-benchmark-1"></a><a class="docs-heading-anchor-permalink" href="#Four-tank-benchmark" title="Permalink"></a></h1><p>The four tank benchmark also known as the Quadruple Tank Porcess (QTP) is a toy system devoted to display regulators capabilities in control engineering. Here the QTP is used to show EasyMPC package to design a linear MPC controller.</p><h2 id="Process"><a class="docs-heading-anchor" href="#Process">Process</a><a id="Process-1"></a><a class="docs-heading-anchor-permalink" href="#Process" title="Permalink"></a></h2><h2 id="Program"><a class="docs-heading-anchor" href="#Program">Program</a><a id="Program-1"></a><a class="docs-heading-anchor-permalink" href="#Program" title="Permalink"></a></h2><pre><code class="language-julia">### QTP Example ###
+
+using EasyMPC
+using DifferentialEquations
+using Plots
+using LinearAlgebra
+
+### QTP with DifferentialEquation.jl
+a1      = 1.31e-4; #m²
+a2      = 1.51e-4; #m²
+a3      = 9.27e-5; #m²
+a4      = 8.82e-5; #m²
+S       = 0.06; #m
+g       = 9.81; #m²/s
+gamma_a = 0.3;
+gamma_b = 0.4;
+
+qa = 0; #m3/h
+qb = 0; #m3/h
+
+function QTP(dh, h, p, t)
+    dh[1] = -a1 / S * sqrt(2 * g * h[1]) + a3 / S * sqrt(2 * g * h[3]) + gamma_a / S * qa / 3600;
+    dh[2] = -a2 / S * sqrt(2 * g * h[2]) + a4 / S * sqrt(2 * g * h[4]) + gamma_b / S * qb / 3600;
+    dh[3] = -a3 / S * sqrt(2 * g * h[3]) + (1 - gamma_b) * qb / (3600 * S);
+    dh[4] = -a4 / S * sqrt(2 * g * h[4]) + (1 - gamma_a) * qa / (3600 * S);
+ end
+
+tspan = (0.0,60.0);
+tsteps = range(tspan[1], tspan[2], step = 0.1);
+u0 = [0.68; 0.68; 0.68; 0.68];
+prob = ODEProblem(QTP,u0,tspan);
+sol = solve(prob, BS3(), saveat = tsteps);
+
+plot(sol)
+
+### Design the MPC controller to regulate the water level
+
+xl = [0.65;0.66;0.65;0.66]
+ul = [1.63 ; 2.00]
+
+xcons = [0.2 1.36;
+         0.2 1.36;
+         0.2 1.30;
+         0.2 1.30] #m
+         
+ucons = [0  3.26;
+         0  4] #m3/h
+
+Ts = 5;#s
+method = &quot;l&quot;; #linear MPC
+Q =  Matrix(I, 4, 4)
+R = 0.01 *  Matrix(I, 2, 2)
+N = 15; #horizon length
+opt = &quot;OSQP&quot;;
+
+ f((x1, x2, x3, x4, u1, u2)) = 
+ [ -a1 / S * sqrt(2 * g * x1) + a3 / S * sqrt(2 * g * x3) + gamma_a / S * u1 / 3600,
+   -a2 / S * sqrt(2 * g * x2) + a4 / S * sqrt(2 * g * x4) + gamma_b / S * u2 / 3600,
+   -a3 / S * sqrt(2 * g * x3) + (1 - gamma_b) * u2 / (3600 * S),
+   -a4 / S * sqrt(2 * g * x4) + (1 - gamma_a) * u1 / (3600 * S),
+ ]
+
+RegulatorMPC = EasyMPC.MpcProblem(f, xl, ul, xcons, ucons, Ts, method, Q, R, N, opt)
+
+state_reference = [0.3;0.3;0.301;0.306]
+input_reference = [1.112;1.351]
+
+obj = []
+function ctrl_cb(int)
+    RegulatorMPC.xt = copy(int.u)&#39;
+    RegulatorMPC.xref = state_reference .* ones(4, N+1)
+    RegulatorMPC.uref = input_reference .* ones(2,N)
+    u, x, xtilde, objc = SolveMpc(RegulatorMPC)
+    global qa = u[1,1]
+    global qb = u[2,1]
+    println(&quot;qa : $qa&quot;)
+    println(&quot;qb : $qb&quot;)
+    push!(obj, objc)
+end 
+
+pcb  = PeriodicCallback(ctrl_cb, 5.0)
+
+
+tspan = (0.0,1500.0);
+tsteps2 = range(tspan[1], tspan[2], step = 0.01);
+
+prob2 = ODEProblem(QTP,u0, tspan, callback = pcb);
+
+### Run the QTP problem with the regulator
+sol2 = solve(prob2, BS3());
+
+plot(sol2)
+plot(obj)</code></pre><h2 id="Description"><a class="docs-heading-anchor" href="#Description">Description</a><a id="Description-1"></a><a class="docs-heading-anchor-permalink" href="#Description" title="Permalink"></a></h2><h3 id="Load-packages"><a class="docs-heading-anchor" href="#Load-packages">Load packages</a><a id="Load-packages-1"></a><a class="docs-heading-anchor-permalink" href="#Load-packages" title="Permalink"></a></h3><pre><code class="language-julia">using EasyMPC
+using DifferentialEquations
+using Plots
+using LinearAlgebra</code></pre><p><a href="https://diffeq.sciml.ai/stable/">DifferentialEquations</a> is used to compute simulation of the QTP.</p><h3 id="QTP-simulation"><a class="docs-heading-anchor" href="#QTP-simulation">QTP simulation</a><a id="QTP-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#QTP-simulation" title="Permalink"></a></h3><pre><code class="language-julia">### QTP with DifferentialEquation.jl
+a1      = 1.31e-4; #m²
+a2      = 1.51e-4; #m²
+a3      = 9.27e-5; #m²
+a4      = 8.82e-5; #m²
+S       = 0.06; #m
+g       = 9.81; #m²/s
+gamma_a = 0.3;
+gamma_b = 0.4;
+
+qa = 0; #m3/h
+qb = 0; #m3/h
+
+function QTP(dh, h, p, t)
+    dh[1] = -a1 / S * sqrt(2 * g * h[1]) + a3 / S * sqrt(2 * g * h[3]) + gamma_a / S * qa / 3600;
+    dh[2] = -a2 / S * sqrt(2 * g * h[2]) + a4 / S * sqrt(2 * g * h[4]) + gamma_b / S * qb / 3600;
+    dh[3] = -a3 / S * sqrt(2 * g * h[3]) + (1 - gamma_b) * qb / (3600 * S);
+    dh[4] = -a4 / S * sqrt(2 * g * h[4]) + (1 - gamma_a) * qa / (3600 * S);
+ end
+
+tspan = (0.0,60.0);
+tsteps = range(tspan[1], tspan[2], step = 0.1);
+u0 = [0.68; 0.68; 0.68; 0.68];
+prob = ODEProblem(QTP,u0,tspan);
+sol = solve(prob, BS3(), saveat = tsteps);
+
+plot(sol)</code></pre><p>QTP parameters are displayed, moreover the system is solved. The plot result shows that in order to regulate tank water level pumps flow need to be greater than 0.</p><h3 id="Design-a-linear-MPC-regulator"><a class="docs-heading-anchor" href="#Design-a-linear-MPC-regulator">Design a linear MPC regulator</a><a id="Design-a-linear-MPC-regulator-1"></a><a class="docs-heading-anchor-permalink" href="#Design-a-linear-MPC-regulator" title="Permalink"></a></h3><pre><code class="language-julia">### Design the MPC controller to regulate the water level
+
+xl = [0.65;0.66;0.65;0.66]
+ul = [1.63 ; 2.00]
+
+xcons = [0.2 1.36;
+         0.2 1.36;
+         0.2 1.30;
+         0.2 1.30] #m
+         
+ucons = [0  3.26;
+         0  4] #m3/h
+
+Ts = 5;#s
+method = &quot;l&quot;; #linear MPC
+Q =  Matrix(I, 4, 4)
+R = 0.01 *  Matrix(I, 2, 2)
+N = 15; #horizon length
+opt = &quot;OSQP&quot;;
+
+ f((x1, x2, x3, x4, u1, u2)) = 
+ [ -a1 / S * sqrt(2 * g * x1) + a3 / S * sqrt(2 * g * x3) + gamma_a / S * u1 / 3600,
+   -a2 / S * sqrt(2 * g * x2) + a4 / S * sqrt(2 * g * x4) + gamma_b / S * u2 / 3600,
+   -a3 / S * sqrt(2 * g * x3) + (1 - gamma_b) * u2 / (3600 * S),
+   -a4 / S * sqrt(2 * g * x4) + (1 - gamma_a) * u1 / (3600 * S),
+ ]
+
+RegulatorMPC = EasyMPC.MpcProblem(f, xl, ul, xcons, ucons, Ts, method, Q, R, N, opt)</code></pre><h3 id="Regulator-differential-equation-solve"><a class="docs-heading-anchor" href="#Regulator-differential-equation-solve">Regulator + differential equation solve</a><a id="Regulator-differential-equation-solve-1"></a><a class="docs-heading-anchor-permalink" href="#Regulator-differential-equation-solve" title="Permalink"></a></h3><pre><code class="language-julia">state_reference = [0.3;0.3;0.301;0.306]
+input_reference = [1.112;1.351]
+
+obj = []
+function ctrl_cb(int)
+    RegulatorMPC.xt = copy(int.u)&#39;
+    RegulatorMPC.xref = state_reference .* ones(4, N+1)
+    RegulatorMPC.uref = input_reference .* ones(2,N)
+    u, x, xtilde, objc = SolveMpc(RegulatorMPC)
+    global qa = u[1,1]
+    global qb = u[2,1]
+    println(&quot;qa : $qa&quot;)
+    println(&quot;qb : $qb&quot;)
+    push!(obj, objc)
+end 
+
+pcb  = PeriodicCallback(ctrl_cb, 5.0)
+
+
+tspan = (0.0,1500.0);
+tsteps2 = range(tspan[1], tspan[2], step = 0.01);
+
+prob2 = ODEProblem(QTP,u0, tspan, callback = pcb);</code></pre><p>Here the regulator is called during the simulation with DifferentialEquation callback and <code>PeriodicCallback</code>. At each 5 seconds, the <code>ctrl_cb</code> is called, states measure, state and input references are updated within the Regulator and the MPC is solved. then fir inputs computed are sent to pumps qa and qb.</p><h3 id="Solving"><a class="docs-heading-anchor" href="#Solving">Solving</a><a id="Solving-1"></a><a class="docs-heading-anchor-permalink" href="#Solving" title="Permalink"></a></h3><p>Finallyn the linear MPC regulator and the simulation are simulated with the folowing:</p><pre><code class="language-julia">### Run the QTP problem with the regulator
+sol2 = solve(prob2, BS3());
+
+plot(sol2)
+plot(obj)</code></pre><h3 id="Expected-output"><a class="docs-heading-anchor" href="#Expected-output">Expected output</a><a id="Expected-output-1"></a><a class="docs-heading-anchor-permalink" href="#Expected-output" title="Permalink"></a></h3><p>When running the program expected output are:</p><h2 id="Reference"><a class="docs-heading-anchor" href="#Reference">Reference</a><a id="Reference-1"></a><a class="docs-heading-anchor-permalink" href="#Reference" title="Permalink"></a></h2><p>[1] Alvarado, I., Limon, D., De La Peña, D. M., Maestre, J. M., Ridao, M. A., Scheu, H., ... &amp; Espinosa, J. (2011). A comparative analysis of distributed MPC techniques applied to the HD-MPC four-tank benchmark. Journal of Process Control, 21(5), 800-815.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../linearmpc/">« Linear Model Predictive Control</a><a class="docs-footer-nextpage" href="../../functions/">Functions user guide »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Monday 8 March 2021 22:02">Monday 8 March 2021</span>. Using Julia version 1.6.0-rc1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

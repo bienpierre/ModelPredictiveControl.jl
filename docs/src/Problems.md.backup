@@ -1,0 +1,49 @@
+# Linear Model Predictive Control
+
+EasyMPC provides linear Model Predictive Control formulation.
+
+## Basics
+
+```jldoctest basics
+julia> Regulator = EasyMPC.MpcProblem(f, xl, ul, xcons, ucons, Ts, method, Q, R, N, opt)
+
+```
+Where f is the non-lienar dynamical system, xl and ul are the state and input linearised point, xcons and ucons are the state and input constraints, Ts is the sample time, method is the controller method, for a linear MPC "l", Q and R are the weighting matrices with appropriate dimensions, N is the horizon length.
+
+
+It is also possible to design a regulator with a discrete state-space linear system:
+
+```jldoctest basics
+julia> Regulator = EasyMPC.LinearMpc(Ad, Bd, xcons, ucons, Q, R, P, N, opt)
+```
+Where ad and Bd are the state and input matrices of the linear system, xcons and ucons are the state and input constraints, Q, R and P are the weighting matrices with appropriate dimensions, N is the horizon length.
+
+
+Here the regulator is a composite with 
+
+```julia
+mutable struct MpcController
+    controller
+    xt
+    xref
+    uref
+    method
+end
+```
+
+Where controller is the JuMP model design, xt the states measurement, xref and uref are the states and inputs references, method is the controller MPC method, "l" for a linear MPC.
+
+Then a MPC can be solved, however mesurement and references have to be fill in.
+
+```jldoctest basics
+julia> Regulator.xt = xt
+julia> Regulator.xref = xref
+julia> Regulator.uref = uref
+julia> x, u = EasyMPC.SolveMpc(Regulator)
+```
+
+## Example
+
+Consider a mass string lenar system...
+
+
