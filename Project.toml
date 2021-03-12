@@ -12,6 +12,7 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 OSQP = "ab2f91bb-94b4-55e3-9ba0-7f65df51de79"
 
 [compat]
+ControlSystems = "0.9"
 julia = "1"
 
 [extras]
