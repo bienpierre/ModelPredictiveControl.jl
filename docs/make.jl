@@ -1,15 +1,19 @@
-using Documenter, EasyMPC
+using Documenter, ModelPredictiveControl
 
 makedocs(
-
-    sitename="EasyMPC.jl",
+    modules=[ModelPredictiveControl],
+    format = Documenter.HTML(),
+    sitename="ModelPredictiveControl.jl",
     
     pages=[
         "Home" => "index.md",
         "Problems" => Any["linearmpc.md"],
-        "Examples" => Any["Examples/QTP.md"],
+        "Tools" => Any["tools.md"], 
+        "Examples" => Any["Examples/QTP.md",
+                          "Examples/mass-string-damper.md"],
         "Functions" => Any[
                         "functions.md"],
-         "Style guide" => Any["style_guide.md"]               
+        "Style guide" => Any["style_guide.md"],
+                       
         
     ] )

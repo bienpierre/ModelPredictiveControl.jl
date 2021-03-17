@@ -1,6 +1,6 @@
 # Four-tank benchmark
 
-The four tank benchmark also known as the Quadruple Tank Porcess (QTP) is a toy system devoted to display regulators capabilities in control engineering. Here the QTP is used to show EasyMPC package to design a linear MPC controller.
+The four tank benchmark also known as the Quadruple Tank Porcess (QTP) is a toy system devoted to display regulators capabilities in control engineering. Here the QTP is used to show ModelPredictiveControl.jl to design a linear MPC controller.
 
 
 ## Process
@@ -8,10 +8,10 @@ The four tank benchmark also known as the Quadruple Tank Porcess (QTP) is a toy 
 
 ## Program
 
-```julia
+```
 ### QTP Example ###
 
-using EasyMPC
+using ModelPredictiveControl
 using DifferentialEquations
 using Plots
 using LinearAlgebra
@@ -57,12 +57,11 @@ xcons = [0.2 1.36;
 ucons = [0  3.26;
          0  4] #m3/h
 
-Ts = 5;#s
+Ts = 5.0;#s
 method = "l"; #linear MPC
 Q =  Matrix(I, 4, 4)
 R = 0.01 *  Matrix(I, 2, 2)
 N = 15; #horizon length
-opt = "OSQP";
 
  f((x1, x2, x3, x4, u1, u2)) = 
  [ -a1 / S * sqrt(2 * g * x1) + a3 / S * sqrt(2 * g * x3) + gamma_a / S * u1 / 3600,
@@ -71,17 +70,26 @@ opt = "OSQP";
    -a4 / S * sqrt(2 * g * x4) + (1 - gamma_a) * u1 / (3600 * S),
  ]
 
-RegulatorMPC = EasyMPC.MpcProblem(f, xl, ul, xcons, ucons, Ts, method, Q, R, N, opt)
+RegulatorMPC = mpc_problem(f, xl, ul, xcons, ucons, Ts, method, Q, R, N)
 
 state_reference = [0.3;0.3;0.301;0.306]
 input_reference = [1.112;1.351]
 
+    RegulatorMPC.x_t = xl
+    RegulatorMPC.x_ref = state_reference .* ones(4, N+1)
+    RegulatorMPC.u_ref = input_reference .* ones(2,N)
+    println("toto")
+    u, x, utilde, xtilde, objc = solve_mpc(RegulatorMPC)
+    
+
+
 obj = []
 function ctrl_cb(int)
-    RegulatorMPC.xt = copy(int.u)'
-    RegulatorMPC.xref = state_reference .* ones(4, N+1)
-    RegulatorMPC.uref = input_reference .* ones(2,N)
-    u, x, xtilde, objc = SolveMpc(RegulatorMPC)
+    x_meas = int.u
+    RegulatorMPC.x_t = convert(Vector{Float64}, x_meas)
+    RegulatorMPC.x_ref = state_reference .* ones(4, N+1)
+    RegulatorMPC.u_ref = input_reference .* ones(2,N)
+    u, x, utilde, xtilde, objc = solve_mpc(RegulatorMPC)
     global qa = u[1,1]
     global qb = u[2,1]
     println("qa : $qa")
@@ -98,7 +106,7 @@ tsteps2 = range(tspan[1], tspan[2], step = 0.01);
 prob2 = ODEProblem(QTP,u0, tspan, callback = pcb);
 
 ### Run the QTP problem with the regulator
-sol2 = solve(prob2, BS3());
+sol2 = DifferentialEquations.solve(prob2, Tsit5());
 
 plot(sol2)
 plot(obj)
@@ -109,7 +117,7 @@ plot(obj)
 ### Load packages
 
 ```julia
-using EasyMPC
+using ModelPredictiveControl
 using DifferentialEquations
 using Plots
 using LinearAlgebra
@@ -120,7 +128,6 @@ using LinearAlgebra
 ### QTP simulation
 
 ```julia
-
 ### QTP with DifferentialEquation.jl
 a1      = 1.31e-4; #m²
 a2      = 1.51e-4; #m²
@@ -150,7 +157,7 @@ sol = solve(prob, BS3(), saveat = tsteps);
 plot(sol)
 ```
 
-QTP parameters are displayed, moreover the system is solved. The plot result shows that in order to regulate tank water level pumps flow need to be greater than 0.
+QTP parameters are displayed. Then the system is simulated. Result shows that in order to regulate tank water level pumps flow need to be greater than 0.
 
 ### Design a linear MPC regulator
 
@@ -168,12 +175,11 @@ xcons = [0.2 1.36;
 ucons = [0  3.26;
          0  4] #m3/h
 
-Ts = 5;#s
+Ts = 5.0;#s
 method = "l"; #linear MPC
 Q =  Matrix(I, 4, 4)
 R = 0.01 *  Matrix(I, 2, 2)
 N = 15; #horizon length
-opt = "OSQP";
 
  f((x1, x2, x3, x4, u1, u2)) = 
  [ -a1 / S * sqrt(2 * g * x1) + a3 / S * sqrt(2 * g * x3) + gamma_a / S * u1 / 3600,
@@ -182,7 +188,7 @@ opt = "OSQP";
    -a4 / S * sqrt(2 * g * x4) + (1 - gamma_a) * u1 / (3600 * S),
  ]
 
-RegulatorMPC = EasyMPC.MpcProblem(f, xl, ul, xcons, ucons, Ts, method, Q, R, N, opt)
+RegulatorMPC = mpc_problem(f, xl, ul, xcons, ucons, Ts, method, Q, R, N)
 ```
 
 ### Regulator + differential equation solve
@@ -191,12 +197,21 @@ RegulatorMPC = EasyMPC.MpcProblem(f, xl, ul, xcons, ucons, Ts, method, Q, R, N, 
 state_reference = [0.3;0.3;0.301;0.306]
 input_reference = [1.112;1.351]
 
+    RegulatorMPC.x_t = xl
+    RegulatorMPC.x_ref = state_reference .* ones(4, N+1)
+    RegulatorMPC.u_ref = input_reference .* ones(2,N)
+    println("toto")
+    u, x, utilde, xtilde, objc = solve_mpc(RegulatorMPC)
+    
+
+
 obj = []
 function ctrl_cb(int)
-    RegulatorMPC.xt = copy(int.u)'
-    RegulatorMPC.xref = state_reference .* ones(4, N+1)
-    RegulatorMPC.uref = input_reference .* ones(2,N)
-    u, x, xtilde, objc = SolveMpc(RegulatorMPC)
+    x_meas = int.u
+    RegulatorMPC.x_t = convert(Vector{Float64}, x_meas)
+    RegulatorMPC.x_ref = state_reference .* ones(4, N+1)
+    RegulatorMPC.u_ref = input_reference .* ones(2,N)
+    u, x, utilde, xtilde, objc = solve_mpc(RegulatorMPC)
     global qa = u[1,1]
     global qb = u[2,1]
     println("qa : $qa")
@@ -213,16 +228,15 @@ tsteps2 = range(tspan[1], tspan[2], step = 0.01);
 prob2 = ODEProblem(QTP,u0, tspan, callback = pcb);
 ```
 
-Here the regulator is called during the simulation with DifferentialEquation callback and `PeriodicCallback`. At each 5 seconds, the `ctrl_cb` is called, states measure, state and input references are updated within the Regulator and the MPC is solved. then fir inputs computed are sent to pumps qa and qb.
+Here the regulator is called during simulation with DifferentialEquation callback and `PeriodicCallback`. At each 5 seconds, the `ctrl_cb` is called, measure, state and input references are updated within the Regulator and the MPC is solved. Finally, inputs computed are sent to pumps qa and qb.
 
 ### Solving
 
-Finallyn the linear MPC regulator and the simulation are simulated with the folowing:
+Finally, the linear MPC regulator and the simulation are simulated with the folowing:
 
 ```julia
-
 ### Run the QTP problem with the regulator
-sol2 = solve(prob2, BS3());
+sol2 = DifferentialEquations.solve(prob2, Tsit5());
 
 plot(sol2)
 plot(obj)

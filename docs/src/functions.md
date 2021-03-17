@@ -4,10 +4,10 @@ This section describes functions references.
 
 
 ```@docs
-EasyMPC.MpcProblem
-EasyMPC.LinearMpc
-EasyMPC.SolveMpc
-EasyMPC.TerminalWeight
+ModelPredictiveControl.mpc_problem
+ModelPredictiveControl.linear_mpc
+ModelPredictivecontrol.solve_mpc
+ModelPredictiveControl.terminal_weight
 ```
 
 MpcProblem

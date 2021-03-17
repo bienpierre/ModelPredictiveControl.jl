@@ -4,16 +4,17 @@ This section describes functions references.
 
 
 ```@docs
-EasyMPC.MpcProblem
-EasyMPC.LinearMpc
-EasyMPC.SolveMpc
-EasyMPC.TerminalWeight
+ModelPredictiveControl.MpcProblem
+ModelPredictiveControl.linear_mpc
+ModelPredictivecontrol.solve_mpc
+ModelPredictiveControl.terminal_weight
 ```
 
 MpcProblem
 
 
-```MpcProblem()
+```
+MpcProblem()
 ```
 
 
